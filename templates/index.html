@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Review Sentiment Analysis</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ghost:#F7F1EA; --antique:#F7F1EA; --peach:#c98a99; --peri:#c98a99; --soft:#670626; --deep:#670626;
+  --bg:#F7F1EA; --ink:#2d0a14; --muted:#7a5560; --line:rgba(103,6,38,.2);
+  --pos:#2d7a55; --pos-soft:rgba(63,155,122,.14); --pos-line:rgba(63,155,122,.42);
+  --neu:#8a6a3f; --neu-soft:rgba(194,162,125,.30); --neu-line:rgba(138,106,63,.45);
+  --neg:#c4203f; --neg-soft:rgba(224,51,79,.12); --neg-line:rgba(224,51,79,.42);
+  --hyb:#8a3550; --hyb-soft:rgba(138,53,80,.12); --hyb-line:rgba(138,53,80,.38);
+  --grad:linear-gradient(135deg,#8f1038 0%,#670626 55%,#4a041b 100%);
+  --display:'DM Serif Display',Georgia,serif;
+  --body:'DM Sans',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);color:var(--ink);line-height:1.6;padding:clamp(1rem,3vw,2.5rem);min-height:100vh;
+  background:radial-gradient(ellipse 60% 50% at 100% 100%,rgba(103,6,38,.30),transparent 70%),radial-gradient(ellipse 55% 45% at 0% 0%,rgba(103,6,38,.16),transparent 70%),radial-gradient(ellipse 50% 40% at 100% 0%,rgba(255,255,255,.85),transparent 70%),radial-gradient(ellipse 50% 40% at 0% 100%,rgba(255,255,255,.7),transparent 70%),linear-gradient(180deg,#F7F1EA 0%,#efe3d8 100%);
+  background-attachment:fixed}
+.page{max-width:1200px;margin:0 auto}
+:focus-visible{outline:3px solid var(--soft);outline-offset:2px}
+::selection{background:var(--soft);color:#fff}
+
+/* ---------- Header + form ---------- */
+.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(1.5rem,4vw,3.5rem);align-items:start}
+.intro{padding-top:.5rem}
+.crest{display:inline-flex;align-items:center;gap:.55rem;padding:.4rem 1.1rem;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.7);color:var(--deep);font-size:.82rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1.5rem}
+.intro h1{font-family:var(--display);font-weight:400;font-size:clamp(2rem,3.6vw,3rem);line-height:1.1;letter-spacing:-.01em;color:var(--ink)}
+.intro h1::after{content:'';display:block;width:72px;height:3px;margin-top:1.1rem;border-radius:4px;background:linear-gradient(90deg,var(--soft),var(--peach))}
+.intro p{margin-top:.9rem;color:var(--muted);max-width:42ch;font-size:1rem;font-weight:400;line-height:1.65}
+.intro ul{list-style:none;margin-top:1.4rem;display:grid;gap:.6rem;font-size:.92rem}
+.intro li{display:flex;gap:.8rem;align-items:center;font-weight:500;color:var(--ink)}
+.intro li i{font-style:normal;flex:none;width:2.1rem;height:2.1rem;border-radius:.65rem;background:rgba(255,255,255,.75);border:1px solid var(--line);display:grid;place-items:center;font-size:.95rem;box-shadow:0 2px 6px rgba(103,6,38,.07)}
+.intro li i{font-style:normal;flex:none;width:2.1rem;height:2.1rem;border-radius:.65rem;background:rgba(255,255,255,.7);border:1px solid var(--line);display:grid;place-items:center;font-size:.95rem}
+
+.card{position:relative;background:rgba(255,255,255,.66);border:1px solid rgba(255,255,255,.9);outline:1px solid var(--line);outline-offset:-1px;border-radius:1.2rem;padding:clamp(1.25rem,2.5vw,2rem);box-shadow:0 24px 60px rgba(103,6,38,0.063);backdrop-filter:blur(14px)}
+.card::before{content:'';position:absolute;top:-1px;left:12%;right:12%;height:3px;background:linear-gradient(90deg,transparent,var(--soft),var(--peach),transparent);border-radius:3px}
+.field-label{display:block;font-weight:600;font-size:.95rem;margin-bottom:.5rem;color:var(--ink)}
+input[type=text]{width:100%;padding:.9rem 1rem;border:1.5px solid var(--line);border-radius:.7rem;font:inherit;background:rgba(255,255,255,.85);color:var(--ink);transition:border-color .15s,box-shadow .15s}
+input[type=text]::placeholder{color:#a08a8f}
+input[type=text]:hover{border-color:rgba(103,6,38,0.21)}
+input[type=text]:focus{outline:none;border-color:var(--soft);box-shadow:0 0 0 4px rgba(103,6,38,.2)}
+.group{margin-top:1.5rem}
+.options{display:grid;gap:.65rem;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.option{position:relative;cursor:pointer;display:block}
+.option input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}
+.option .box{display:flex;gap:.7rem;align-items:center;height:100%;padding:.85rem .95rem;border:1.5px solid var(--line);border-radius:.85rem;background:rgba(255,255,255,.75);transition:border-color .15s,background .15s,transform .15s}
+.option .ico{flex:none;width:2.3rem;height:2.3rem;display:grid;place-items:center;border-radius:.65rem;background:rgba(103,6,38,0.122);font-size:1.05rem}
+.option b{display:block;font-size:.92rem;line-height:1.25}
+.option small{display:block;color:var(--muted);font-size:.78rem;line-height:1.3;margin-top:.1rem}
+.option:hover .box{border-color:var(--soft);transform:translateY(-1px)}
+.option input:checked + .box{border-color:var(--soft);background:linear-gradient(135deg,rgba(103,6,38,0.14),rgba(247,241,234,.4));box-shadow:0 0 0 1px var(--soft),0 8px 22px rgba(103,6,38,.18)}
+.option input:checked + .box .ico{background:var(--grad);color:#fff}
+.option input:focus-visible + .box{outline:3px solid var(--soft);outline-offset:2px}
+.option.hybrid .box{border-color:rgba(138,53,80,.45)}
+.option.hybrid input:checked + .box{border-color:#8a3550;background:linear-gradient(135deg,rgba(247,241,234,.7),rgba(103,6,38,0.122));box-shadow:0 0 0 1px #8a3550,0 8px 22px rgba(138,53,80,.25)}
+.option.hybrid input:checked + .box .ico{background:linear-gradient(135deg,#b05a78,#8a3550);color:#fff}
+
+.hybrid-banner{display:none;margin-top:1rem;padding:1rem 1.1rem;border-radius:.85rem;background:rgba(247,241,234,.5);border:1px solid rgba(138,53,80,.5);font-size:.88rem;color:#4a1226}
+.hybrid-banner strong{color:#2d0a18}
+.hybrid-banner .warn{display:block;margin-top:.45rem;color:#8a3550;font-weight:500}
+
+.btn{margin-top:1.75rem;width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:1rem 1.5rem;border:0;border-radius:.8rem;background:var(--grad);color:#fff;font:700 1.02rem var(--body);letter-spacing:.01em;cursor:pointer;box-shadow:0 12px 28px rgba(103,6,38,.35);transition:filter .15s,transform .1s,box-shadow .15s}
+.btn:hover:not(:disabled){filter:brightness(1.06);box-shadow:0 16px 34px rgba(103,6,38,.45)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.85;cursor:wait}
+.btn-loader{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Loading overlay ---------- */
+.overlay{overflow-y:auto;padding:1rem;position:fixed;inset:0;background:rgba(247,241,234,.95);display:none;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(6px)}
+.overlay.show{display:flex}
+.overlay-box{text-align:center;max-width:380px;width:100%;padding:1rem}
+.overlay .spinner{width:40px;height:40px;margin:0 auto 1rem;border:4px solid rgba(103,6,38,.2);border-top-color:var(--soft);border-radius:50%;animation:spin 1s linear infinite}
+.overlay h2{font-family:var(--display);font-size:1.6rem}
+.overlay p{color:var(--muted);margin-top:.5rem}
+
+.error{margin-top:1.5rem;padding:1rem 1.25rem;border-radius:.8rem;background:#ffe3e8;border:1px solid var(--neg-line);color:#8f1f35;font-weight:500}
+
+/* ---------- Results ---------- */
+.results-head{margin-top:3.25rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;justify-content:space-between;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+.results-head h2{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3.2vw,2.5rem);line-height:1.15}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:.4rem;padding:.38rem .85rem;border-radius:999px;font-size:.85rem;font-weight:500;background:rgba(255,255,255,.7);border:1px solid var(--line)}
+.pill.algo{background:var(--hyb-soft);color:var(--deep);font-weight:600}
+.pill.algo.hyb{background:rgba(247,241,234,.7);border-color:rgba(138,53,80,.6);color:#8a3550}
+.pill.time{color:var(--pos)}
+
+.verdict{margin-top:1.5rem;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:1rem}
+.verdict .main{padding:clamp(1.25rem,2.5vw,2rem)}
+.verdict-label{color:var(--muted);font-size:.92rem}
+.verdict-value{font-family:var(--display);font-weight:800;font-size:clamp(2.1rem,4.6vw,3.3rem);line-height:1.1;margin-top:.2rem}
+.verdict-value.pos{color:var(--pos)} .verdict-value.neg{color:var(--neg)} .verdict-value.neu{color:var(--neu)}
+.split{display:flex;height:16px;border-radius:999px;overflow:hidden;margin-top:1.4rem;background:rgba(103,6,38,0.052)}
+.split span{display:block;min-width:0;transition:width .6s ease}
+.split .p{background:#3f9b7a} .split .n{background:#c2a27d} .split .x{background:#e0334f}
+.legend{display:flex;flex-wrap:wrap;gap:.4rem 1.25rem;margin-top:.85rem;font-size:.86rem;color:var(--muted)}
+.legend i{display:inline-block;width:.65rem;height:.65rem;border-radius:50%;margin-right:.4rem}
+.side{display:grid;gap:1rem}
+.stat{padding:1.15rem 1.4rem}
+.stat .v{font-family:var(--display);font-weight:800;font-size:2.1rem;line-height:1.1;color:var(--deep)}
+.stat .l{color:var(--muted);font-size:.88rem}
+
+.sentiments{margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+.s-card{position:relative;padding:1.4rem 1.5rem;border-radius:1.2rem;border:1px solid rgba(255,255,255,.9);outline:1px solid var(--line);outline-offset:-1px;background:rgba(255,255,255,.66);box-shadow:0 18px 44px rgba(103,6,38,0.056);border-top:5px solid transparent;backdrop-filter:blur(14px)}
+.s-card.positive{border-top-color:#3f9b7a} .s-card.neutral{border-top-color:#c2a27d} .s-card.negative{border-top-color:#e0334f}
+.s-card .top-row{display:flex;justify-content:space-between;align-items:center}
+.s-card h3{font-size:1rem;font-weight:600;color:var(--muted)}
+.s-card .emoji{font-size:1.6rem}
+.s-card .percent{font-family:var(--display);font-weight:800;font-size:3.2rem;line-height:1;margin:.9rem 0 .4rem}
+.s-card.positive .percent{color:var(--pos)} .s-card.neutral .percent{color:var(--neu)} .s-card.negative .percent{color:var(--neg)}
+.s-card .count{color:var(--muted);font-size:.9rem}
+
+.charts{margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1rem}
+.chart-card{padding:1.4rem 1.5rem}
+.chart-card.wide{grid-column:1/-1}
+.chart-card h3{font-family:var(--display);font-size:1.3rem;font-weight:700}
+.chart-card p{color:var(--muted);font-size:.88rem;margin-top:.2rem}
+.chart-box{min-height:380px;margin-top:.5rem}
+
+.download{margin-top:1rem;padding:1.25rem 1.5rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between}
+.download h3{font-family:var(--display);font-size:1.25rem}
+.download p{color:var(--muted);font-size:.9rem}
+.download button{padding:.8rem 1.6rem;border:0;border-radius:.75rem;background:var(--grad);color:#fff;font:700 .95rem var(--body);cursor:pointer;box-shadow:0 10px 24px rgba(103,6,38,.3);transition:filter .15s}
+.download button:hover:not(:disabled){filter:brightness(1.07)}
+.download button:disabled{opacity:.7;cursor:wait}
+
+/* ---------- Reviews ---------- */
+.reviews{margin-top:1rem;padding:clamp(1.1rem,2.5vw,1.75rem)}
+.reviews-head{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between}
+.reviews-head h2{font-family:var(--display);font-size:1.6rem;font-weight:700}
+.tools{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.chip{padding:.4rem .95rem;border-radius:999px;border:1.5px solid var(--line);background:rgba(255,255,255,.75);font:500 .85rem var(--body);color:var(--ink);cursor:pointer;width:auto;margin:0;display:inline-block;transition:border-color .15s}
+.chip:hover{border-color:var(--soft)}
+.chip[aria-pressed=true]{background:var(--grad);color:#fff;border-color:transparent;font-weight:600}
+.search{width:200px;padding:.45rem .9rem;border-radius:999px;font-size:.85rem}
+.review-scroll{margin-top:1.25rem;max-height:640px;overflow-y:auto;display:grid;gap:.8rem;padding-right:.4rem;scrollbar-width:thin;scrollbar-color:rgba(103,6,38,0.21) transparent}
+.review-scroll::-webkit-scrollbar{width:8px}
+.review-scroll::-webkit-scrollbar-thumb{background:rgba(103,6,38,0.193);border-radius:8px}
+.review{padding:1.05rem 1.2rem;border-radius:.9rem;border:1px solid rgba(103,6,38,0.063);border-left-width:5px;background:rgba(255,255,255,.78)}
+.review.positive{border-left-color:#3f9b7a} .review.neutral{border-left-color:#c2a27d} .review.negative{border-left-color:#e0334f}
+.review-row{display:flex;gap:1rem;justify-content:space-between;align-items:flex-start}
+.review-text{flex:1;font-size:.96rem;color:#3d1522;overflow-wrap:anywhere}
+.tag{flex:none;padding:.25rem .75rem;border-radius:999px;font-size:.78rem;font-weight:600;border:1px solid transparent}
+.tag.positive{background:var(--pos-soft);color:var(--pos);border-color:var(--pos-line)}
+.tag.neutral{background:var(--neu-soft);color:var(--neu);border-color:var(--neu-line)}
+.tag.negative{background:var(--neg-soft);color:var(--neg);border-color:var(--neg-line)}
+.hybrid-box{margin-top:.85rem;padding:.85rem .95rem;border-radius:.75rem;background:var(--hyb-soft);border:1px solid var(--hyb-line)}
+.hybrid-box .t{font-size:.82rem;font-weight:600;color:var(--deep);margin-bottom:.5rem}
+.scores{display:flex;flex-wrap:wrap;gap:.4rem}
+.score{padding:.2rem .65rem;border-radius:.45rem;background:rgba(255,255,255,.85);border:1px solid var(--hyb-line);font-size:.8rem;color:var(--muted)}
+.score b{color:var(--ink);margin-right:.3rem}
+.conf{margin-top:.65rem;display:flex;align-items:center;gap:.7rem;font-size:.8rem;color:var(--muted)}
+.conf .track{flex:1;height:6px;border-radius:999px;background:rgba(103,6,38,0.07);overflow:hidden}
+.conf .fill{height:100%;background:linear-gradient(90deg,#e3a6b8,#8a3550);border-radius:999px}
+.conf strong{color:var(--deep)}
+.aspects{margin-top:.85rem;padding-top:.75rem;border-top:1px solid rgba(103,6,38,0.07);display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.aspects .lbl{font-size:.82rem;color:var(--muted);margin-right:.25rem}
+.aspect-badge{padding:.2rem .75rem;border-radius:999px;font-size:.8rem;font-weight:500;border:1px solid}
+.aspect-badge.positive{background:var(--pos-soft);color:var(--pos);border-color:var(--pos-line)}
+.aspect-badge.neutral{background:var(--neu-soft);color:var(--neu);border-color:var(--neu-line)}
+.aspect-badge.negative{background:var(--neg-soft);color:var(--neg);border-color:var(--neg-line)}
+.empty-filter{display:none;text-align:center;color:var(--muted);padding:1.5rem}
+
+.toast{position:fixed;top:1rem;right:1rem;padding:.85rem 1.25rem;border-radius:.7rem;color:#fff;font-weight:600;z-index:1000;box-shadow:0 8px 24px rgba(45,10,20,.3)}
+.toast.success{background:#2f7d63} .toast.error{background:#b5303f}
+
+/* ---------- Snake game (shown while analyzing) ---------- */
+.snake-wrap{margin-top:1.25rem;padding:1rem;border:1px solid var(--line);border-radius:1.1rem;background:rgba(255,255,255,.7);box-shadow:0 14px 34px rgba(103,6,38,0.063)}
+.snake-bar{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--muted);margin-bottom:.6rem}
+.snake-bar span:first-child{font-family:var(--display);font-weight:700;font-size:1.05rem;color:var(--deep)}
+.snake-bar b{color:var(--ink)}
+#snakeCanvas{display:block;width:100%;max-width:320px;aspect-ratio:1/1;margin:0 auto;border-radius:.8rem;border:2px solid var(--peri);background:#2d0a14;touch-action:none}
+.snake-msg{min-height:1.4rem;margin-top:.6rem;font-size:.82rem;color:var(--muted)}
+.dpad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,44px);gap:.35rem;justify-content:center;margin-top:.5rem}
+.dpad button{border:1px solid var(--line);border-radius:.6rem;background:rgba(103,6,38,0.122);color:var(--ink);font-size:1.1rem;cursor:pointer;transition:background .12s}
+.dpad button:hover,.dpad button:active{background:var(--grad);color:#fff}
+.dpad .up{grid-column:2;grid-row:1}
+.dpad .left{grid-column:1;grid-row:2}
+.dpad .down{grid-column:2;grid-row:2}
+.dpad .right{grid-column:3;grid-row:2}
+
+@media (max-width:860px){
+  .top,.verdict{grid-template-columns:1fr}
+  .chart-card.wide{grid-column:auto}
+  .search{width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* ---------- Input tabs ---------- */
+.input-tabs{display:flex;gap:.5rem;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--line)}
+.itab{flex:1;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.7rem 1rem;border:1.5px solid var(--line);border-radius:.75rem;background:rgba(255,255,255,.6);font:600 .92rem var(--body);color:var(--muted);cursor:pointer;transition:all .15s}
+.itab:hover{border-color:var(--soft);color:var(--ink)}
+.itab.active{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(103,6,38,.28)}
+
+/* ---------- Drop zone ---------- */
+.drop-zone{margin-top:.5rem;border:2px dashed rgba(103,6,38,.3);border-radius:1rem;padding:2.25rem 1.5rem;text-align:center;cursor:pointer;background:rgba(255,255,255,.5);transition:border-color .15s,background .15s}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--soft);background:rgba(103,6,38,.04)}
+.drop-icon{font-size:2.4rem;margin-bottom:.6rem}
+.drop-title{font-weight:600;color:var(--ink);font-size:1rem}
+.drop-link{color:var(--soft);text-decoration:underline}
+.drop-sub{margin-top:.35rem;font-size:.82rem;color:var(--muted)}
+.file-chosen{margin-top:.75rem;display:flex;align-items:center;gap:.65rem;padding:.65rem 1rem;border-radius:.65rem;background:rgba(63,155,122,.1);border:1px solid rgba(63,155,122,.35);font-size:.88rem;color:#2a6e50;font-weight:500}
+.file-chosen .fc-remove{margin-left:auto;background:none;border:none;color:#c4203f;cursor:pointer;font-size:.9rem;padding:.1rem .4rem;border-radius:.35rem;width:auto}
+.file-chosen .fc-remove:hover{background:rgba(196,32,63,.1)}
+
+/* ---------- Upload hint ---------- */
+.upload-hint-box{padding:.9rem 1rem;border-radius:.75rem;background:rgba(103,6,38,.042);border:1px solid var(--line)}
+.upload-hint-title{font-weight:600;font-size:.88rem;color:var(--ink);display:block;margin-bottom:.5rem}
+.upload-hint-list{padding-left:1.15rem;font-size:.83rem;color:var(--muted);line-height:1.7}
+.upload-hint-list code{background:rgba(103,6,38,.07);padding:.05rem .35rem;border-radius:.3rem;font-size:.82rem;color:var(--deep)}
+
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay" class="overlay" role="dialog" aria-modal="true" aria-label="Analyzing reviews">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <h2>Analyzing reviews</h2>
+    <p class="loading-description">Collecting reviews and scoring each one. Play a quick game of Snake while you wait.</p>
+    <div class="snake-wrap">
+      <div class="snake-bar"><span>Snake</span><span>Score <b id="snakeScore">0</b></span><span>Best <b id="snakeBest">0</b></span></div>
+      <canvas id="snakeCanvas" width="320" height="320" aria-label="Snake game"></canvas>
+      <div class="snake-msg" id="snakeMsg"></div>
+      <div class="dpad">
+        <button type="button" class="up" data-dir="up" aria-label="Up">▲</button>
+        <button type="button" class="left" data-dir="left" aria-label="Left">◀</button>
+        <button type="button" class="down" data-dir="down" aria-label="Down">▼</button>
+        <button type="button" class="right" data-dir="right" aria-label="Right">▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ===== Header + form ===== -->
+  <section class="top">
+    <div class="intro">
+      <div class="crest">⭐ App &amp; Feedback Sentiment Analysis</div>
+      <h1>Sentiment analysis for apps &amp; feedback</h1>
+      <p>Paste a Google Play link or upload a file — get sentiment scores, aspect insights and a PDF report.</p>
+      <ul>
+        <li><i>▶️</i><span>Google Play app reviews</span></li>
+        <li><i>📂</i><span>Upload CSV, Excel, TXT, JSON or PDF</span></li>
+        <li><i>🤖</i><span>VADER · BERT · LSTM · Hybrid</span></li>
+        <li><i>📄</i><span>Downloadable PDF report</span></li>
+      </ul>
+    </div>
+
+    <!-- Input mode tabs -->
+    <div class="card" id="mainCard">
+
+      <!-- Tab switcher -->
+      <div class="input-tabs" id="inputTabs">
+        <button type="button" class="itab active" id="tabPlaystore" onclick="switchTab('playstore')">
+          <span>▶️</span> Play Store URL
+        </button>
+        <button type="button" class="itab" id="tabUpload" onclick="switchTab('upload')">
+          <span>📂</span> Upload File
+        </button>
+      </div>
+
+      <!-- ── Tab 1: Play Store URL ── -->
+      <form method="POST" action="/" id="formPlaystore" class="tab-form">
+        <div style="margin-top:1rem">
+          <label class="field-label" for="app_url">Google Play Store URL</label>
+          <input type="text" id="app_url" name="app_url" placeholder="https://play.google.com/store/apps/details?id=..." required>
+        </div>
+
+        <div class="group">
+          <span class="field-label">Analysis type</span>
+          <div class="options">
+            <label class="option">
+              <input type="radio" name="analysis_type" value="quick" checked>
+              <span class="box"><span class="ico">⚡</span><span><b>Quick</b><small>First 500 reviews, fastest</small></span></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="analysis_type" value="full">
+              <span class="box"><span class="ico">🎯</span><span><b>Full</b><small>Every review, most accurate, slower</small></span></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="field-label">Algorithm</span>
+          <div class="options" id="algoOpts1">
+            <label class="option">
+              <input type="radio" name="algorithm" value="vader" checked>
+              <span class="box"><span class="ico">⚙️</span><span><b>VADER</b><small>Fast, lexicon-based</small></span></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="algorithm" value="bert">
+              <span class="box"><span class="ico">🧠</span><span><b>BERT</b><small>Deep learning NLP</small></span></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="algorithm" value="lstm">
+              <span class="box"><span class="ico">🔄</span><span><b>LSTM</b><small>Sequence learning</small></span></span>
+            </label>
+            <label class="option hybrid">
+              <input type="radio" name="algorithm" value="hybrid">
+              <span class="box"><span class="ico">🔀</span><span><b>Hybrid</b><small>VADER + BERT + LSTM ensemble</small></span></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="hybridInfoBanner" class="hybrid-banner">
+          Combines <strong>BERT (50%)</strong>, <strong>VADER (30%)</strong> and <strong>TextBlob/LSTM (20%)</strong> into one weighted score. Each review also shows how closely the three models agreed.
+          <span class="warn">Takes a little longer because all three engines run.</span>
+        </div>
+
+        <button type="submit" id="analyzeButton" class="btn">
+          <span class="button-text">Analyze reviews</span>
+        </button>
+      </form>
+
+      <!-- ── Tab 2: File Upload ── -->
+      <form method="POST" action="/analyze_upload" id="formUpload" class="tab-form" enctype="multipart/form-data" style="display:none">
+
+        <div style="margin-top:1rem">
+          <span class="field-label">Upload feedback / review file</span>
+          <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Click or drag a file here">
+            <div class="drop-icon">📂</div>
+            <div class="drop-title">Drop your file here, or <span class="drop-link">browse</span></div>
+            <div class="drop-sub">CSV · Excel (.xlsx / .xls) · TXT · JSON · PDF &nbsp;·&nbsp; max 2 000 rows / entries</div>
+            <input type="file" id="feedbackFile" name="feedback_file" accept=".csv,.xlsx,.xls,.txt,.json,.pdf" style="display:none">
+          </div>
+          <div id="fileChosen" class="file-chosen" style="display:none"></div>
+        </div>
+
+        <div class="group">
+          <div class="upload-hint-box">
+            <span class="upload-hint-title">📋 Expected file formats</span>
+            <ul class="upload-hint-list">
+              <li><b>CSV / Excel</b> — column named <code>review</code>, <code>text</code>, <code>content</code>, <code>feedback</code>, or <code>comment</code>. Titles and short label cells are skipped automatically.</li>
+              <li><b>TXT</b> — one review per line. Blank lines, headers, and single-word labels are ignored.</li>
+              <li><b>JSON</b> — array of strings <code>["great app","needs work"]</code> or array of objects <code>[{"review":"..."},...]</code></li>
+              <li><b>PDF</b> — text is extracted from every page. Only sentence-like content (3+ words) is kept; titles, page numbers, and column headers are filtered out.</li>
+            </ul>
+            <div style="margin-top:.65rem;font-size:.82rem;color:var(--muted);display:flex;align-items:flex-start;gap:.5rem">
+              <span>💡</span>
+              <span>The smart content filter automatically removes titles, column headers, short labels, URLs, and numbers — keeping only real review sentences regardless of the file format.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="field-label">Algorithm</span>
+          <div class="options" id="algoOpts2">
+            <label class="option">
+              <input type="radio" name="algorithm" value="vader" checked>
+              <span class="box"><span class="ico">⚙️</span><span><b>VADER</b><small>Fast, lexicon-based</small></span></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="algorithm" value="bert">
+              <span class="box"><span class="ico">🧠</span><span><b>BERT</b><small>Deep learning NLP</small></span></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="algorithm" value="lstm">
+              <span class="box"><span class="ico">🔄</span><span><b>LSTM</b><small>Sequence learning</small></span></span>
+            </label>
+            <label class="option hybrid">
+              <input type="radio" name="algorithm" value="hybrid">
+              <span class="box"><span class="ico">🔀</span><span><b>Hybrid</b><small>VADER + BERT + LSTM ensemble</small></span></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="hybridInfoBanner2" class="hybrid-banner">
+          Combines <strong>BERT (50%)</strong>, <strong>VADER (30%)</strong> and <strong>TextBlob/LSTM (20%)</strong> into one weighted score. Each review also shows how closely the three models agreed.
+          <span class="warn">Takes a little longer because all three engines run.</span>
+        </div>
+
+        <button type="submit" id="uploadButton" class="btn">
+          <span class="button-text-upload">Analyze uploaded file</span>
+        </button>
+      </form>
+
+    </div><!-- /mainCard -->
+  </section>
+
+  {% if error %}
+  <div class="error" role="alert">{{ error }}</div>
+  {% endif %}
+
+  {% if app_title %}
+  <!-- ===== Results header ===== -->
+  <section class="results-head" id="resultsTop">
+    <h2>App: {{ app_title }}</h2>
+    <div class="meta">
+      {% if algorithm_used %}
+        {% if algorithm_used == 'hybrid' %}
+          <span class="pill algo hyb">🔀 Hybrid · BERT 50% + VADER 30% + LSTM 20%</span>
+        {% else %}
+          <span class="pill algo">{{ algorithm_used|upper }}</span>
+        {% endif %}
+      {% endif %}
+      {% if analysis_time %}
+        <span class="pill time">⏱ {{ analysis_time }} seconds</span>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if results %}
+  <!-- ===== Overall verdict ===== -->
+  <section class="verdict">
+    <div class="card main">
+      <div class="verdict-label">Overall sentiment</div>
+      {% if results.positive > results.negative %}
+        <div class="verdict-value pos">Positive 😊</div>
+      {% elif results.negative > results.positive %}
+        <div class="verdict-value neg">Negative 😔</div>
+      {% else %}
+        <div class="verdict-value neu">Neutral 😐</div>
+      {% endif %}
+      <div class="split" role="img" aria-label="Sentiment split">
+        <span class="p" style="width:{{ results.positive }}%"></span>
+        <span class="n" style="width:{{ results.neutral }}%"></span>
+        <span class="x" style="width:{{ results.negative }}%"></span>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--pos)"></i>Positive {{ results.positive }}%</span>
+        <span><i style="background:var(--neu)"></i>Neutral {{ results.neutral }}%</span>
+        <span><i style="background:var(--neg)"></i>Negative {{ results.negative }}%</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card stat">
+        <div class="v">{{ counts.total }}</div>
+        <div class="l">Reviews analyzed</div>
+      </div>
+      <div class="card stat">
+        <div class="v" style="font-size:1.5rem">
+          {% if (results.positive - results.negative)|abs < 10 %}Balanced{% elif results.positive > results.negative %}Highly positive{% else %}Highly negative{% endif %}
+        </div>
+        <div class="l">Sentiment balance</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Sentiment cards (kept for PDF data extraction) ===== -->
+  <section class="sentiments">
+    <div class="s-card sentiment-box positive" data-sentiment="positive">
+      <div class="top-row"><h3>Positive</h3><span class="emoji">😊</span></div>
+      <div class="percent">{{ results.positive }}%</div>
+      <p class="count">({{ counts.positive }} reviews)</p>
+    </div>
+    <div class="s-card sentiment-box neutral" data-sentiment="neutral">
+      <div class="top-row"><h3>Neutral</h3><span class="emoji">😐</span></div>
+      <div class="percent">{{ results.neutral }}%</div>
+      <p class="count">({{ counts.neutral }} reviews)</p>
+    </div>
+    <div class="s-card sentiment-box negative" data-sentiment="negative">
+      <div class="top-row"><h3>Negative</h3><span class="emoji">😔</span></div>
+      <div class="percent">{{ results.negative }}%</div>
+      <p class="count">({{ counts.negative }} reviews)</p>
+    </div>
+  </section>
+
+  {% if charts %}
+  <section class="charts">
+    <div class="card chart-card">
+      <h3>Sentiment distribution</h3>
+      <p>Share of positive, neutral and negative reviews.</p>
+      <div class="chart-box"><div id="sentiment_pie"></div></div>
+    </div>
+    <div class="card chart-card">
+      <h3>Aspect sentiment</h3>
+      <p>Sentiment breakdown for each aspect, such as usability, performance and design.</p>
+      <div class="chart-box"><div id="aspect_bar"></div></div>
+    </div>
+    <div class="card chart-card wide">
+      <h3>Aspect performance radar</h3>
+      <p>How the app scores across every aspect at once.</p>
+      <div class="chart-box"><div id="aspect_radar"></div></div>
+    </div>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if detailed_reviews %}
+  <section class="card download">
+    <div>
+      <h3>Download report</h3>
+      <p>Get the full sentiment analysis as a PDF.</p>
+    </div>
+    <button type="button" id="pdfButton" onclick="downloadReport('pdf', this)">Download PDF</button>
+  </section>
+
+  <section class="card reviews">
+    <div class="reviews-head">
+      <h2>Individual reviews</h2>
+      <div class="tools">
+        <button type="button" class="chip" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-filter="positive" aria-pressed="false">Positive</button>
+        <button type="button" class="chip" data-filter="neutral" aria-pressed="false">Neutral</button>
+        <button type="button" class="chip" data-filter="negative" aria-pressed="false">Negative</button>
+        <input type="text" id="reviewSearch" class="search" placeholder="Search reviews" aria-label="Search reviews">
+      </div>
+    </div>
+
+    <div class="review-scroll" id="reviewList">
+      {% for review in detailed_reviews %}
+      <article class="review {{ review.sentiment }}" data-sentiment="{{ review.sentiment }}">
+        <div class="review-row">
+          <p class="review-text">{{ review.text }}</p>
+          <span class="tag {{ review.sentiment }}">{{ review.sentiment|capitalize }}</span>
+        </div>
+
+        {% if algorithm_used == 'hybrid' and review.model_scores is defined %}
+        <div class="hybrid-box">
+          <div class="t">🔀 Hybrid model breakdown</div>
+          <div class="scores">
+            <span class="score"><b>🧠 BERT</b>{{ "%.3f"|format(review.model_scores.bert) }}</span>
+            <span class="score"><b>⚙️ VADER</b>{{ "%.3f"|format(review.model_scores.vader) }}</span>
+            <span class="score"><b>🔄 LSTM</b>{{ "%.3f"|format(review.model_scores.lstm) }}</span>
+            <span class="score" style="border-color:var(--hyb)"><b style="color:var(--hyb)">🔀 Hybrid</b>{{ "%.3f"|format(review.hybrid_score) }}</span>
+          </div>
+          <div class="conf">
+            <span>Model agreement</span>
+            <div class="track"><div class="fill" style="width:{{ (review.confidence * 100)|int }}%"></div></div>
+            <strong>{{ (review.confidence * 100)|int }}%</strong>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if review.aspects %}
+        <div class="aspects">
+          <span class="lbl">Aspects:</span>
+          {% for aspect, score in review.aspects.items() %}
+            {% set sentiment = 'positive' if score >= 0.05 else ('negative' if score <= -0.05 else 'neutral') %}
+            <span class="aspect-badge {{ sentiment }}">{{ aspect }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+      <div class="empty-filter" id="emptyFilter">No reviews match this filter.</div>
+    </div>
+  </section>
+  {% endif %}
+
+</div><!-- /page -->
+
+<script>
+  // ---------- Snake game (plays while the analysis runs) ----------
+  (function () {
+    var canvas = document.getElementById('snakeCanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var N = 16, C = canvas.width / N;
+    var scoreEl = document.getElementById('snakeScore');
+    var bestEl = document.getElementById('snakeBest');
+    var msg = document.getElementById('snakeMsg');
+    var overlay = document.getElementById('loadingOverlay');
+    var snake, dir, nextDir, food, score, alive, started, timer = null, best = 0;
+    try { best = parseInt(localStorage.getItem('snakeBest') || '0', 10) || 0; } catch (e) {}
+
+    function placeFood() {
+      do {
+        food = { x: Math.floor(Math.random() * N), y: Math.floor(Math.random() * N) };
+      } while (snake.some(function (s) { return s.x === food.x && s.y === food.y; }));
+    }
+    function updateScore() { scoreEl.textContent = score; bestEl.textContent = best; }
+    function reset() {
+      snake = [{ x: 8, y: 8 }, { x: 7, y: 8 }, { x: 6, y: 8 }];
+      dir = { x: 1, y: 0 }; nextDir = dir;
+      score = 0; alive = true; started = false;
+      placeFood(); updateScore(); draw();
+      msg.textContent = 'Use arrow keys, WASD, swipe or the buttons to start';
+    }
+    function setDir(x, y) {
+      if (!alive) reset();
+      if (x === -dir.x && y === -dir.y) return;
+      nextDir = { x: x, y: y };
+      if (!started) { started = true; msg.textContent = ''; }
+    }
+    function gameOver() {
+      alive = false;
+      if (score > best) {
+        best = score;
+        try { localStorage.setItem('snakeBest', String(best)); } catch (e) {}
+      }
+      updateScore();
+      msg.textContent = 'Game over. Press any direction to play again';
+    }
+    function tick() {
+      if (!alive || !started) return;
+      dir = nextDir;
+      var h = { x: (snake[0].x + dir.x + N) % N, y: (snake[0].y + dir.y + N) % N };
+      var ate = (h.x === food.x && h.y === food.y);
+      var body = ate ? snake : snake.slice(0, -1);
+      if (body.some(function (s) { return s.x === h.x && s.y === h.y; })) { gameOver(); draw(); return; }
+      snake.unshift(h);
+      if (ate) { score++; placeFood(); } else { snake.pop(); }
+      updateScore(); draw();
+    }
+    function draw() {
+      ctx.fillStyle = '#2d0a14';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(247,241,234,0.06)';
+      for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) if ((i + j) % 2 === 0) ctx.fillRect(i * C, j * C, C, C);
+      ctx.fillStyle = '#ffe2a8';
+      ctx.beginPath();
+      ctx.arc(food.x * C + C / 2, food.y * C + C / 2, C * 0.36, 0, Math.PI * 2);
+      ctx.fill();
+      snake.forEach(function (s, i) {
+        var t = 1 - i / (snake.length + 6);
+        ctx.fillStyle = i === 0 ? '#F7F1EA' : 'rgba(226,150,170,' + (0.45 + 0.55 * t).toFixed(2) + ')';
+        ctx.beginPath();
+        if (ctx.roundRect) { ctx.roundRect(s.x * C + 1, s.y * C + 1, C - 2, C - 2, 5); }
+        else { ctx.rect(s.x * C + 1, s.y * C + 1, C - 2, C - 2); }
+        ctx.fill();
+      });
+    }
+
+    var keys = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0], W: [0, -1], S: [0, 1], A: [-1, 0], D: [1, 0] };
+    document.addEventListener('keydown', function (e) {
+      if (!overlay.classList.contains('show')) return;
+      var k = keys[e.key];
+      if (!k) return;
+      e.preventDefault();
+      setDir(k[0], k[1]);
+    });
+    var pads = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    document.querySelectorAll('.dpad button').forEach(function (b) {
+      b.addEventListener('click', function () { var k = pads[b.dataset.dir]; setDir(k[0], k[1]); });
+    });
+    var tx = 0, ty = 0;
+    canvas.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+    canvas.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchend', function (e) {
+      var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+      if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? 1 : -1, 0); else setDir(0, dy > 0 ? 1 : -1);
+    });
+
+    window.startSnake = function () { reset(); if (!timer) timer = setInterval(tick, 180); };
+    window.stopSnake = function () { if (timer) { clearInterval(timer); timer = null; } };
+    reset();
+  })();
+
+  // ---------- Tab switcher ----------
+  var INPUT_MODE = '{{ input_mode | default("playstore") }}';
+  function switchTab(mode) {
+    var ps = document.getElementById('formPlaystore');
+    var up = document.getElementById('formUpload');
+    var t1 = document.getElementById('tabPlaystore');
+    var t2 = document.getElementById('tabUpload');
+    if (mode === 'upload') {
+      ps.style.display = 'none';  up.style.display = '';
+      t1.classList.remove('active'); t2.classList.add('active');
+    } else {
+      up.style.display = 'none';  ps.style.display = '';
+      t2.classList.remove('active'); t1.classList.add('active');
+    }
+  }
+  // Restore tab from server response
+  document.addEventListener('DOMContentLoaded', function () { switchTab(INPUT_MODE); });
+
+  // ---------- Drop zone ----------
+  (function () {
+    var zone  = document.getElementById('dropZone');
+    var input = document.getElementById('feedbackFile');
+    var info  = document.getElementById('fileChosen');
+    if (!zone || !input) return;
+
+    function showFile(f) {
+      if (!f) return;
+      input.files; // just reference
+      info.style.display = 'flex';
+      info.innerHTML = '<span>📄 ' + f.name + ' (' + (f.size / 1024).toFixed(1) + ' KB)</span>'
+        + '<button type="button" class="fc-remove" onclick="clearFile()" aria-label="Remove file">✕</button>';
+    }
+    window.clearFile = function () {
+      input.value = '';
+      info.style.display = 'none';
+      info.innerHTML = '';
+    };
+    zone.addEventListener('click', function () { input.click(); });
+    zone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+    input.addEventListener('change', function () { if (input.files[0]) showFile(input.files[0]); });
+    zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', function () { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', function (e) {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      var f = e.dataTransfer.files[0];
+      if (!f) return;
+      // Inject into hidden input via DataTransfer
+      try {
+        var dt = new DataTransfer(); dt.items.add(f); input.files = dt.files;
+      } catch (_) {}
+      showFile(f);
+    });
+  })();
+
+  // ---------- Form: loading state (Play Store) ----------
+  var psForm = document.getElementById('formPlaystore');
+  if (psForm) {
+    psForm.addEventListener('submit', function () {
+      var btn = document.getElementById('analyzeButton');
+      var selectedAlgo = (document.querySelector('#formPlaystore input[name="algorithm"]:checked') || {}).value || 'vader';
+      btn.disabled = true;
+      btn.querySelector('.button-text').innerHTML = '<span class="btn-loader"></span> Analyzing reviews...';
+      var desc = document.querySelector('.loading-description');
+      if (desc && selectedAlgo === 'hybrid') {
+        desc.textContent = 'Running BERT, VADER and TextBlob/LSTM, then combining them. Play Snake while you wait.';
+      }
+      document.getElementById('loadingOverlay').classList.add('show');
+      if (window.startSnake) window.startSnake();
+    });
+  }
+
+  // ---------- Form: loading state (Upload) ----------
+  var upForm = document.getElementById('formUpload');
+  if (upForm) {
+    upForm.addEventListener('submit', function (e) {
+      var fi = document.getElementById('feedbackFile');
+      if (!fi || !fi.files || !fi.files[0]) {
+        e.preventDefault();
+        alert('Please select a file before clicking Analyze.');
+        return;
+      }
+      var btn = document.getElementById('uploadButton');
+      var selectedAlgo = (document.querySelector('#formUpload input[name="algorithm"]:checked') || {}).value || 'vader';
+      btn.disabled = true;
+      btn.querySelector('.button-text-upload').innerHTML = '<span class="btn-loader"></span> Analyzing file...';
+      var desc = document.querySelector('.loading-description');
+      if (desc) {
+        desc.textContent = selectedAlgo === 'hybrid'
+          ? 'Running BERT, VADER and LSTM on your file, then combining. Play Snake while you wait.'
+          : 'Processing your uploaded reviews. Play a quick game of Snake while you wait.';
+      }
+      document.getElementById('loadingOverlay').classList.add('show');
+      if (window.startSnake) window.startSnake();
+    });
+  }
+
+  // ---------- Hybrid info banners (both forms) ----------
+  (function () {
+    function watchAlgo(formId, bannerId) {
+      var banner = document.getElementById(bannerId);
+      if (!banner) return;
+      function update() {
+        var v = (document.querySelector('#' + formId + ' input[name="algorithm"]:checked') || {}).value;
+        banner.style.display = (v === 'hybrid') ? 'block' : 'none';
+      }
+      var form = document.getElementById(formId);
+      if (form) form.querySelectorAll('input[name="algorithm"]').forEach(function (r) { r.addEventListener('change', update); });
+      update();
+    }
+    watchAlgo('formPlaystore', 'hybridInfoBanner');
+    watchAlgo('formUpload',    'hybridInfoBanner2');
+  })();
+
+  // ---------- Reset overlay/button when results are shown (also on back navigation) ----------
+  function resetLoadingState() {
+    document.getElementById('loadingOverlay').classList.remove('show');
+    if (window.stopSnake) window.stopSnake();
+    var b1 = document.getElementById('analyzeButton');
+    var b2 = document.getElementById('uploadButton');
+    if (b1) { b1.disabled = false; b1.querySelector('.button-text').textContent = 'Analyze reviews'; }
+    if (b2) { b2.disabled = false; b2.querySelector('.button-text-upload').textContent = 'Analyze uploaded file'; }
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    resetLoadingState();
+    var top = document.getElementById('resultsTop');
+    if (top) { top.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) resetLoadingState(); });
+
+  // ---------- Review filters + search ----------
+  (function () {
+    var list = document.getElementById('reviewList');
+    if (!list) return;
+    var chips = document.querySelectorAll('.chip[data-filter]');
+    var search = document.getElementById('reviewSearch');
+    var empty = document.getElementById('emptyFilter');
+    var current = 'all';
+    function apply() {
+      var q = (search.value || '').toLowerCase().trim();
+      var shown = 0;
+      list.querySelectorAll('.review').forEach(function (el) {
+        var okS = current === 'all' || el.dataset.sentiment === current;
+        var okQ = !q || el.textContent.toLowerCase().indexOf(q) !== -1;
+        var ok = okS && okQ;
+        el.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      });
+      empty.style.display = shown ? 'none' : 'block';
+    }
+    chips.forEach(function (c) {
+      c.addEventListener('click', function () {
+        current = c.dataset.filter;
+        chips.forEach(function (x) { x.setAttribute('aria-pressed', x === c ? 'true' : 'false'); });
+        apply();
+      });
+    });
+    search.addEventListener('input', apply);
+  })();
+
+  // ---------- PDF download (same endpoint and payload as before) ----------
+  var pageData = {
+    aspectSentiments: {{ aspect_sentiments | tojson if aspect_sentiments else 'null' }}
+  };
+
+  function showNotification(message, type) {
+    var n = document.createElement('div');
+    n.className = 'toast ' + type;
+    n.textContent = message;
+    document.body.appendChild(n);
+    setTimeout(function () { n.remove(); }, 3000);
+  }
+
+  function downloadReport(format, button) {
+    var h2 = document.querySelector('#resultsTop h2');
+    var appTitle = h2 ? h2.innerText.replace('App: ', '') : 'Unknown';
+
+    var results = {}, counts = {};
+    document.querySelectorAll('.sentiment-box').forEach(function (box) {
+      var s = box.dataset.sentiment;
+      results[s] = parseFloat((box.querySelector('.percent') || {}).innerText || '0');
+      var m = ((box.querySelector('.count') || {}).innerText || '').match(/\((\d+)\s+reviews\)/);
+      counts[s] = m ? parseInt(m[1], 10) : 0;
+    });
+    {% if counts %}
+    counts.total = {{ counts.total|default(0) }};
+    {% else %}
+    counts.total = (counts.positive || 0) + (counts.neutral || 0) + (counts.negative || 0);
+    {% endif %}
+
+    var algorithmUsed = '{{ algorithm_used|default("vader") }}';
+
+    var aspectSentiments = pageData.aspectSentiments || {};
+    if (!Object.keys(aspectSentiments).length) {
+      try {
+        var bar = document.getElementById('aspect_bar');
+        if (bar && bar.data && bar.data.length) {
+          (bar.data[0].x || []).forEach(function (aspect, i) {
+            if (aspect && aspect.trim()) {
+              aspectSentiments[aspect.toLowerCase()] = {
+                positive: (bar.data[0].y || [])[i] || 0,
+                neutral: bar.data[1] ? (bar.data[1].y || [])[i] || 0 : 0,
+                negative: bar.data[2] ? (bar.data[2].y || [])[i] || 0 : 0
+              };
+            }
+          });
+        }
+      } catch (e) { console.log('Could not extract aspect data from chart:', e); }
+    }
+
+    var reportData = {
+      app_title: appTitle,
+      results: results,
+      counts: counts,
+      detailed_reviews: [],
+      aspect_sentiments: aspectSentiments,
+      algorithm_used: algorithmUsed
+    };
+
+    var original = button.innerText;
+    button.disabled = true;
+    button.innerText = 'Generating PDF...';
+
+    fetch('/download_report/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reportData)
+    })
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP error! status: ' + r.status);
+      return r.blob();
+    })
+    .then(function (blob) {
+      var url = window.URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'Sentiment_Report_' + appTitle.replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      button.disabled = false;
+      button.innerText = original;
+      showNotification('PDF downloaded successfully', 'success');
+    })
+    .catch(function (err) {
+      console.error('Error downloading report:', err);
+      button.disabled = false;
+      button.innerText = original;
+      showNotification('Could not download the report: ' + err.message, 'error');
+    });
+  }
+
+  // ---------- Plotly charts ----------
+  var charts = {{ charts | tojson | safe if charts else 'null' }};
+  if (charts) {
+    var INK = '#2d0a14', GRID = 'rgba(103,6,38,0.12)';
+    var plotlyConfig = {
+      responsive: true, displaylogo: false,
+      modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+      toImageButtonOptions: { format: 'png', filename: 'sentiment_analysis_chart', height: 800, width: 1200, scale: 2 }
+    };
+    var baseLayout = {
+      font: { family: "'Inter', sans-serif", size: 12, color: INK },
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      margin: { l: 56, r: 24, t: 20, b: 60 },
+      showlegend: true,
+      legend: { orientation: 'h', x: 0, y: -0.2, font: { size: 12, color: INK } }
+    };
+
+    // Pie
+    var pieData = JSON.parse(charts.sentiment_pie);
+    var pieLayout = Object.assign({}, baseLayout, pieData.layout);
+    pieLayout.title = { text: '' };
+    pieLayout.paper_bgcolor = 'rgba(0,0,0,0)';
+    pieLayout.plot_bgcolor = 'rgba(0,0,0,0)';
+    pieLayout.font = baseLayout.font;
+    pieLayout.legend = baseLayout.legend;
+    if (pieData.data && pieData.data[0]) {
+      pieData.data[0].marker = { colors: ['#3f9b7a', '#c2a27d', '#e0334f'], line: { color: '#F7F1EA', width: 3 } };
+      pieData.data[0].hole = 0.55;
+      pieData.data[0].textposition = 'auto';
+      pieData.data[0].textfont = { size: 13, color: '#2d0a14' };
+      pieData.data[0].hovertemplate = '<b>%{label}</b><br>%{value} reviews (%{percent})<extra></extra>';
+    }
+    Plotly.newPlot('sentiment_pie', pieData.data, pieLayout, plotlyConfig);
+
+    // Bar
+    var barData = JSON.parse(charts.aspect_bar);
+    var barLayout = Object.assign({}, baseLayout, barData.layout);
+    barLayout.title = { text: '' };
+    barLayout.paper_bgcolor = 'rgba(0,0,0,0)';
+    barLayout.plot_bgcolor = 'rgba(0,0,0,0)';
+    barLayout.font = baseLayout.font;
+    barLayout.legend = baseLayout.legend;
+    barLayout.xaxis = { title: '', tickangle: -45, showgrid: false, linecolor: GRID };
+    barLayout.yaxis = { title: 'Count', showgrid: true, gridcolor: GRID, zeroline: false };
+    barLayout.hovermode = 'closest';
+    var barColors = { Positive: '#3f9b7a', Neutral: '#c2a27d', Negative: '#e0334f' };
+    (barData.data || []).forEach(function (t) {
+      if (barColors[t.name]) t.marker = { color: barColors[t.name] };
+      t.hovertemplate = '<b>%{x}</b><br>%{fullData.name}: %{y}<extra></extra>';
+    });
+    Plotly.newPlot('aspect_bar', barData.data, barLayout, plotlyConfig);
+
+    // Radar
+    var radarData = JSON.parse(charts.aspect_radar);
+    var radarLayout = Object.assign({}, baseLayout, radarData.layout);
+    radarLayout.title = { text: '' };
+    radarLayout.paper_bgcolor = 'rgba(0,0,0,0)';
+    radarLayout.plot_bgcolor = 'rgba(0,0,0,0)';
+    radarLayout.font = baseLayout.font;
+    radarLayout.legend = baseLayout.legend;
+    radarLayout.polar = {
+      bgcolor: 'rgba(0,0,0,0)',
+      radialaxis: { visible: true, range: [0, 1], showline: true, linecolor: GRID, gridcolor: GRID },
+      angularaxis: { gridcolor: GRID, tickfont: { size: 12 } }
+    };
+    var radarStroke = { Positive: '#3f9b7a', Negative: '#e0334f' };
+    var radarFill = { Positive: 'rgba(63,155,122,0.25)', Negative: 'rgba(224,51,79,0.25)' };
+    (radarData.data || []).forEach(function (t) {
+      t.fill = 'toself';
+      t.line = { color: radarStroke[t.name] || '#c2a27d', width: 2 };
+      t.fillcolor = radarFill[t.name] || 'rgba(194,162,125,0.30)';
+      t.hovertemplate = '<b>%{customdata}</b><br>%{r:.2f}<extra></extra>';
+    });
+    Plotly.newPlot('aspect_radar', radarData.data, radarLayout, plotlyConfig);
+
+    window.addEventListener('resize', function () {
+      ['sentiment_pie', 'aspect_bar', 'aspect_radar'].forEach(function (id) { Plotly.Plots.resize(id); });
+    });
+  }
+</script>
+</body>
+</html>
