@@ -2,12 +2,18 @@ services:
   - type: web
     name: hybrid-sentiment-analysis
     runtime: python
-    buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt
-      python -m spacy download en_core_web_sm
-      python -m nltk.downloader vader_lexicon punkt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    buildCommand: >
+      pip install --upgrade pip &&
+      pip install -r requirements.txt &&
+      python -m spacy download en_core_web_sm &&
+      python -m nltk.downloader vader_lexicon punkt averaged_perceptron_tagger
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.0"
+        value: "3.10.0"
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/hf_cache
+      - key: HF_HOME
+        value: /tmp/hf_home
+      - key: TORCH_HOME
+        value: /tmp/torch_home
