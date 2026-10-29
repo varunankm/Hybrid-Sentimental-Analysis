@@ -6,19 +6,18 @@ gunicorn==22.0.0
 # Play Store scraper
 google-play-scraper==1.2.7
 
-# NLP - pure Python, no C compilation needed
+# NLP - pure Python only
 nltk==3.8.1
 textblob==0.18.0
 
-# PyTorch CPU-only - Python 3.11 compatible
+# PyTorch CPU - versions available for Python 3.14
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.1.2+cpu
+torch==2.9.1+cpu
 
-# Transformers (DistilBERT) - Python 3.11 compatible
+# Transformers - no safetensors (it needs Rust)
 transformers==4.37.2
 tokenizers==0.15.2
 huggingface-hub==0.21.4
-safetensors==0.4.2
 
 # Data
 pandas==2.2.0
@@ -53,3 +52,7 @@ idna==3.6
 urllib3==2.2.0
 typing_extensions==4.9.0
 packaging==23.2
+filelock==3.13.1
+fsspec==2024.2.0
+sympy==1.12
+networkx==3.2.1
