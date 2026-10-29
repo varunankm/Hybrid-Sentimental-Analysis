@@ -10,7 +10,7 @@ google-play-scraper==1.2.7
 nltk==3.8.1
 textblob==0.18.0
 
-# PyTorch CPU-only - Python 3.14 compatible wheel
+# PyTorch CPU-only - Python 3.14 compatible
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.9.1+cpu
 
