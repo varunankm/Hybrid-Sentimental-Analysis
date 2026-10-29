@@ -9,8 +9,6 @@ services:
       python -m nltk.downloader vader_lexicon punkt averaged_perceptron_tagger
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.10.0"
       - key: TRANSFORMERS_CACHE
         value: /tmp/hf_cache
       - key: HF_HOME
