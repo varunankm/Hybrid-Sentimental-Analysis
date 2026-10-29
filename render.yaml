@@ -1,9 +1,9 @@
 services:
   - type: web
     name: hybrid-sentiment-analysis
-    runtime: docker
-    envVars:
-      - key: TRANSFORMERS_CACHE
-        value: /tmp/hf_cache
-      - key: HF_HOME
-        value: /tmp/hf_home
+    runtime: python
+    buildCommand: >
+      pip install --upgrade pip &&
+      pip install -r requirements.txt &&
+      python -m nltk.downloader vader_lexicon punkt wordnet averaged_perceptron_tagger omw-1.4 punkt_tab
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120

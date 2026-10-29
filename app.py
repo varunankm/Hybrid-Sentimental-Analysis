@@ -10,8 +10,6 @@ import plotly.utils
 import json
 import numpy as np
 from collections import defaultdict
-from transformers import pipeline
-import torch
 from io import BytesIO
 from datetime import datetime
 from reportlab.lib.pagesizes import letter, A4
@@ -25,6 +23,18 @@ import time
 import pandas as pd
 import io as _io
 
+# Try to load BERT — gracefully disabled if torch/transformers not installed
+bert_pipeline = None
+try:
+    from transformers import pipeline as hf_pipeline
+    bert_pipeline = hf_pipeline(
+        "sentiment-analysis",
+        model="distilbert-base-uncased-finetuned-sst-2-english"
+    )
+    print("BERT pipeline loaded successfully.")
+except Exception as e:
+    print(f"BERT not available (running without it): {e}")
+
 # Download required NLTK data
 for _pkg in ('punkt', 'vader_lexicon', 'wordnet', 'averaged_perceptron_tagger',
              'omw-1.4', 'punkt_tab'):
@@ -35,13 +45,6 @@ for _pkg in ('punkt', 'vader_lexicon', 'wordnet', 'averaged_perceptron_tagger',
             nltk.download(_pkg, quiet=True)
         except Exception:
             pass
-
-# Initialize BERT sentiment pipeline
-try:
-    bert_pipeline = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-except Exception as e:
-    print(f"Warning: BERT pipeline initialization failed: {e}")
-    bert_pipeline = None
 
 app = Flask(__name__)
 
