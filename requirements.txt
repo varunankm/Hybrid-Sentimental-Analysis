@@ -6,24 +6,21 @@ gunicorn==22.0.0
 # Play Store scraper
 google-play-scraper==1.2.7
 
-# NLP core
+# NLP — pure Python, no C compilation
 nltk==3.8.1
 textblob==0.18.0
 
-# spaCy — 3.6.x has pre-built wheels for Python 3.11 on Linux
-spacy==3.6.1
-
-# PyTorch CPU-only (no CUDA, much smaller download)
+# PyTorch CPU-only (no CUDA, compatible with Python 3.14)
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.1.0+cpu
 
-# Transformers
+# Transformers (DistilBERT)
 transformers==4.35.2
 tokenizers==0.15.0
 huggingface-hub==0.19.4
 safetensors==0.4.1
 
-# Data handling
+# Data
 pandas==2.1.4
 numpy==1.26.4
 openpyxl==3.1.2
@@ -32,7 +29,7 @@ PyPDF2==3.0.1
 # Charts
 plotly==5.18.0
 
-# PDF generation
+# PDF report
 reportlab==4.1.0
 
 # Utilities

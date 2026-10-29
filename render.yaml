@@ -5,13 +5,10 @@ services:
     buildCommand: >
       pip install --upgrade pip &&
       pip install -r requirements.txt &&
-      python -m spacy download en_core_web_sm &&
-      python -m nltk.downloader vader_lexicon punkt averaged_perceptron_tagger
+      python -m nltk.downloader vader_lexicon punkt wordnet averaged_perceptron_tagger omw-1.4 punkt_tab
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 180
     envVars:
       - key: TRANSFORMERS_CACHE
         value: /tmp/hf_cache
       - key: HF_HOME
         value: /tmp/hf_home
-      - key: TORCH_HOME
-        value: /tmp/torch_home

@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, send_file, jsonify
 from google_play_scraper import app as gp_app, reviews, reviews_all, Sort
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
-import spacy
+from nltk.stem import WordNetLemmatizer
 import re
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -26,22 +26,15 @@ import pandas as pd
 import io as _io
 
 # Download required NLTK data
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-
-try:
-    nltk.data.find('sentiment/vader_lexicon.zip')
-except LookupError:
-    nltk.download('vader_lexicon')
-
-try:
-    nlp = spacy.load('en_core_web_sm')
-except OSError:
-    from spacy.cli import download
-    download('en_core_web_sm')
-    nlp = spacy.load('en_core_web_sm')
+for _pkg in ('punkt', 'vader_lexicon', 'wordnet', 'averaged_perceptron_tagger',
+             'omw-1.4', 'punkt_tab'):
+    try:
+        nltk.data.find(_pkg)
+    except LookupError:
+        try:
+            nltk.download(_pkg, quiet=True)
+        except Exception:
+            pass
 
 # Initialize BERT sentiment pipeline
 try:
@@ -64,11 +57,24 @@ ASPECTS = {
     'updates': ['update', 'version', 'latest', 'new', 'old', 'frequent', 'improvement']
 }
 
-# OPTIMIZATION 1: Cache spaCy NLP processing
+# NLTK lemmatizer (replaces spaCy — pure Python, no C compilation needed)
+_lemmatizer = WordNetLemmatizer()
+
 @lru_cache(maxsize=5000)
 def cached_nlp_process(text):
-    """Cache spaCy NLP results to avoid reprocessing"""
-    return nlp(text.lower())
+    """Tokenize and lemmatize using NLTK (cached)."""
+    tokens = nltk.word_tokenize(text.lower())
+    return {_lemmatizer.lemmatize(t) for t in tokens if t.isalpha()}
+
+def identify_aspects(text):
+    text_words = cached_nlp_process(text)
+    found_aspects = defaultdict(float)
+    for aspect, keywords in ASPECTS.items():
+        for keyword in keywords:
+            if keyword in text_words:
+                found_aspects[aspect] += 1
+    return dict(found_aspects)
+
 
 def get_playstore_reviews(app_id, analysis_type='quick'):
     try:
@@ -81,37 +87,20 @@ def get_playstore_reviews(app_id, analysis_type='quick'):
                 sort=Sort.MOST_RELEVANT,
             )
             return [{'content': review['content'], 'score': review['score']}
-                   for review in all_reviews if review.get('content')]
+                    for review in all_reviews if review.get('content')]
         else:
             result, _ = reviews(
                 app_id,
                 lang='en',
                 country='us',
                 sort=Sort.MOST_RELEVANT,
-                count=500  # Fetch 500 reviews for quick analysis
+                count=500,
             )
-            return [{'content': review['content'], 'score': review['score']} 
-                   for review in result if review.get('content')]
-
+            return [{'content': review['content'], 'score': review['score']}
+                    for review in result if review.get('content')]
     except Exception as e:
         print(f"Error: {e}")
         return None
-
-# OPTIMIZATION 3: Use cached NLP processing
-def identify_aspects(text):
-    doc = cached_nlp_process(text)  # Use cached version instead of nlp()
-    found_aspects = defaultdict(float)
-    
-    # Get all words and lemmatize them
-    text_words = {token.lemma_ for token in doc}
-    
-    # Check each aspect
-    for aspect, keywords in ASPECTS.items():
-        for keyword in keywords:
-            if keyword in text_words:
-                found_aspects[aspect] += 1
-                
-    return dict(found_aspects)
 
 def analyze_sentiment(reviews, algorithm='vader'):
     if not reviews:
