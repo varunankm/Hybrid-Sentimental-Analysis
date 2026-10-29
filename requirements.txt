@@ -14,11 +14,11 @@ textblob==0.18.0
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.9.1+cpu
 
-# Transformers (DistilBERT)
+# Transformers (DistilBERT) - pre-built wheels only
 transformers==4.47.0
 tokenizers==0.21.0
 huggingface-hub==0.27.0
-safetensors==0.4.5
+safetensors==0.4.3
 
 # Data
 pandas==2.2.3
